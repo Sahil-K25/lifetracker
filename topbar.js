@@ -113,9 +113,27 @@
 }
 
 @media (max-width: 600px) {
+<<<<<<< HEAD
   .topbar { padding-left: 10px; padding-right: 10px; gap: 5px; }
   .topbar-pill { padding: 7px 10px; gap: 5px; }
   .topbar-water-pill { padding: 7px 10px; gap: 5px; }
+=======
+  .topbar {
+    padding-left: 10px; padding-right: 10px; gap: 6px;
+    overflow-x: auto; overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+  .topbar::-webkit-scrollbar { display: none; }
+  .topbar-pill {
+    flex: 0 0 auto;
+    padding: 7px 11px; gap: 6px;
+    min-width: unset;
+  }
+  .topbar-water-wrap { flex: 0 0 auto; min-width: unset; }
+  .topbar-water-pill { flex: 0 0 auto; padding: 7px 11px; gap: 6px; }
+>>>>>>> 84f20fe65efb66d7d2858f617754fad7963552e1
   .topbar-pill-label { font-size: 9px; letter-spacing: 0.10em; }
   .topbar-pill-count { font-size: 11px; }
   .topbar-water-add { width: 32px; font-size: 16px; }
