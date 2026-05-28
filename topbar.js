@@ -14,8 +14,8 @@
   // -------- Supabase config (same project as the rest of the dashboard) --------
   // For your audience's standalone, replace these with placeholders
   // and have them paste their own values, just like the other pages.
-  const TOPBAR_SUPABASE_URL = 'PASTE-YOUR-SUPABASE-PROJECT-URL-HERE';
-  const TOPBAR_SUPABASE_KEY = 'PASTE-YOUR-SUPABASE-PUBLISHABLE-KEY-HERE';
+  const TOPBAR_SUPABASE_URL = 'https://safmxwpwgcdfdgefpjfk.supabase.co';
+  const TOPBAR_SUPABASE_KEY = 'sb_publishable_yM4ndlATgVTV6SYDI692SA_uu64x-eZ';
 
   // -------- CSS --------
   const css = `
@@ -109,15 +109,25 @@
   background: linear-gradient(180deg, rgba(125, 211, 252, 0.65), rgba(110, 231, 183, 0.65));
 }
 
-@media (max-width: 480px) {
-  .topbar { padding-left: 10px; padding-right: 10px; gap: 4px; }
-  .topbar-pill, .topbar-water-pill { padding: 7px 9px; gap: 5px; }
+@media (max-width: 600px) {
+  .topbar {
+    padding-left: 10px; padding-right: 10px; gap: 6px;
+    overflow-x: auto; overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+  }
+  .topbar::-webkit-scrollbar { display: none; }
+  .topbar-pill {
+    flex: 0 0 auto;
+    padding: 7px 11px; gap: 6px;
+    min-width: unset;
+  }
+  .topbar-water-wrap { flex: 0 0 auto; min-width: unset; }
+  .topbar-water-pill { flex: 0 0 auto; padding: 7px 11px; gap: 6px; }
   .topbar-pill-label { font-size: 9px; letter-spacing: 0.10em; }
   .topbar-pill-count { font-size: 11px; }
   .topbar-water-add { width: 32px; font-size: 16px; }
-}
-@media (max-width: 380px) {
-  .topbar-pill-label { display: none; }
 }
 
 /* === Global mobile lockdown ===
