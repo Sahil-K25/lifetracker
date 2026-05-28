@@ -14,24 +14,27 @@
   // -------- Supabase config (same project as the rest of the dashboard) --------
   // For your audience's standalone, replace these with placeholders
   // and have them paste their own values, just like the other pages.
-  const TOPBAR_SUPABASE_URL = 'PASTE-YOUR-SUPABASE-PROJECT-URL-HERE';
-  const TOPBAR_SUPABASE_KEY = 'PASTE-YOUR-SUPABASE-PUBLISHABLE-KEY-HERE';
+  const TOPBAR_SUPABASE_URL = 'https://safmxwpwgcdfdgefpjfk.supabase.co';
+  const TOPBAR_SUPABASE_KEY = 'sb_publishable_yM4ndlATgVTV6SYDI692SA_uu64x-eZ';
 
   // -------- CSS --------
   const css = `
 .topbar {
   position: sticky; top: 0; z-index: 40;
   display: flex; gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
   padding: max(10px, env(safe-area-inset-top)) 14px 10px;
-  /* Fully opaque so each page's body background can't bleed through
-     and tint the bar a different color. Matches the dashboard's base
-     dark background so the bar feels continuous with the page chrome. */
   background: #0a0a0b;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, sans-serif;
 }
+.topbar::-webkit-scrollbar { display: none; }
 .topbar-pill {
-  flex: 1 1 0; min-width: 0;
+  flex: 0 0 auto;
   display: inline-flex; align-items: center; gap: 8px;
   padding: 8px 12px;
   background: rgba(255, 255, 255, 0.04);
@@ -71,11 +74,11 @@
   white-space: nowrap;
 }
 .topbar-water-wrap {
-  flex: 1 1 0; min-width: 0;
+  flex: 0 0 auto;
   display: flex;
 }
 .topbar-water-pill {
-  flex: 1; min-width: 0;
+  flex: 0 0 auto;
   display: inline-flex; align-items: center; gap: 8px;
   padding: 8px 12px;
   background: rgba(125, 211, 252, 0.07);
@@ -109,15 +112,13 @@
   background: linear-gradient(180deg, rgba(125, 211, 252, 0.65), rgba(110, 231, 183, 0.65));
 }
 
-@media (max-width: 480px) {
-  .topbar { padding-left: 10px; padding-right: 10px; gap: 4px; }
-  .topbar-pill, .topbar-water-pill { padding: 7px 9px; gap: 5px; }
+@media (max-width: 600px) {
+  .topbar { padding-left: 10px; padding-right: 10px; gap: 5px; }
+  .topbar-pill { padding: 7px 10px; gap: 5px; }
+  .topbar-water-pill { padding: 7px 10px; gap: 5px; }
   .topbar-pill-label { font-size: 9px; letter-spacing: 0.10em; }
   .topbar-pill-count { font-size: 11px; }
   .topbar-water-add { width: 32px; font-size: 16px; }
-}
-@media (max-width: 380px) {
-  .topbar-pill-label { display: none; }
 }
 
 /* === Global mobile lockdown ===
