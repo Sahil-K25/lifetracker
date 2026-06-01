@@ -528,6 +528,120 @@ body::after {
   background: rgba(255,255,255,0.04);
 }
 
+/* ===== Daily Recurring Tasks ===== */
+.gm-card-daily { border-left: 3px solid rgba(107,227,164,0.30); }
+.gm-card-daily .gm-eyebrow { color: rgba(107,227,164,0.70); }
+.gm-daily-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: rgba(107,227,164,0.10);
+  border: 1px solid rgba(107,227,164,0.22);
+  color: rgba(107,227,164,0.75);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+}
+.gm-row-recurring {
+  background: rgba(107,227,164,0.04);
+  border-color: rgba(107,227,164,0.10);
+}
+.gm-row-recurring.gm-row-done {
+  background: rgba(107,227,164,0.04);
+}
+.gm-recurring-icon {
+  font-size: 12px;
+  color: rgba(107,227,164,0.55);
+  flex-shrink: 0;
+}
+.gm-manage-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px;
+  border: 1px dashed rgba(107,227,164,0.20);
+  border-radius: 12px;
+  background: transparent;
+  color: rgba(107,227,164,0.55);
+  font-family: inherit;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.10em; text-transform: uppercase;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+.gm-manage-btn:hover {
+  color: rgba(107,227,164,0.90);
+  border-color: rgba(107,227,164,0.40);
+  background: rgba(107,227,164,0.05);
+}
+
+/* Manage drawer */
+.gm-manage-drawer {
+  display: none;
+  margin-top: 12px;
+  padding: 14px;
+  background: rgba(0,0,0,0.24);
+  border: 1px solid rgba(107,227,164,0.12);
+  border-radius: 12px;
+}
+.gm-manage-drawer.is-open { display: block; }
+.gm-manage-drawer-title {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(107,227,164,0.55);
+  margin-bottom: 10px;
+}
+.gm-recurring-manage-list { list-style: none; margin: 0 0 10px; padding: 0; }
+.gm-recurring-manage-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 10px;
+  margin-bottom: 5px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 9px;
+}
+.gm-recurring-manage-text {
+  flex: 1; font-size: 13px; color: var(--text-secondary);
+  cursor: text; outline: none; border-radius: 4px;
+  padding: 2px 4px; margin: -2px -4px;
+}
+.gm-recurring-manage-text[contenteditable="true"] {
+  outline: 1px solid rgba(107,227,164,0.30);
+  background: rgba(0,0,0,0.28);
+}
+.gm-recurring-del {
+  border: 0; background: transparent;
+  color: var(--text-tertiary);
+  font-size: 16px; cursor: pointer;
+  padding: 0 4px; opacity: 0.5;
+  transition: opacity 0.2s, color 0.2s;
+}
+.gm-recurring-del:hover { opacity: 1; color: var(--danger); }
+.gm-manage-add-row {
+  display: flex; gap: 8px; align-items: center;
+}
+.gm-manage-input {
+  flex: 1; min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  background: rgba(0,0,0,0.28);
+  color: var(--text-primary);
+  font-family: inherit; font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.gm-manage-input::placeholder { color: var(--text-tertiary); }
+.gm-manage-input:focus { border-color: rgba(107,227,164,0.35); }
+.gm-manage-add-btn {
+  padding: 9px 16px;
+  border: 0; border-radius: 10px;
+  background: rgba(107,227,164,0.18);
+  color: rgba(107,227,164,0.90);
+  font-family: inherit; font-size: 12px; font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.gm-manage-add-btn:hover { background: rgba(107,227,164,0.28); }
+
 .goal-input-wrap.gm-input-wrap {
   display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
   margin-top: 14px;
@@ -668,6 +782,33 @@ body::after {
         <button type="button" id="goalAddBtn"    class="gm-add">+ Add</button>
         <button type="button" id="goalPolishBtn" class="gm-polish">✨ Polish</button>
         <div class="gm-status" id="polishStatus"></div>
+      </div>
+    </div>
+
+    <!-- DAILY RECURRING TASKS -->
+    <div class="gm-card gm-card-daily" id="gmCardDaily">
+      <div class="gm-header">
+        <div class="gm-header-left">
+          <div class="gm-eyebrow">Daily Habits</div>
+          <div class="gm-progress-row">
+            <span class="gm-progress-num" id="dailyProgressNum">0</span>
+            <span class="gm-progress-total" id="dailyProgressTotal">/ 0</span>
+            <span class="gm-progress-label" id="dailyProgressLabel">no habits yet</span>
+          </div>
+        </div>
+        <div class="gm-daily-badge">🔁 Every day</div>
+      </div>
+      <div class="gm-bar" id="dailyBar"></div>
+      <ul id="dailyList" class="goal-list gm-list"></ul>
+      <div id="dailyEmpty" class="empty-state">No daily habits yet — add some below to track them every day.</div>
+      <button type="button" id="gmManageBtn" class="gm-manage-btn">⚙ Manage daily habits</button>
+      <div class="gm-manage-drawer" id="gmManageDrawer">
+        <div class="gm-manage-drawer-title">Edit recurring habits</div>
+        <ul id="recurringManageList" class="gm-recurring-manage-list"></ul>
+        <div class="gm-manage-add-row">
+          <input id="recurringManageInput" class="gm-manage-input" type="text" placeholder="New daily habit…" autocomplete="off">
+          <button type="button" id="recurringManageAddBtn" class="gm-manage-add-btn">+ Add</button>
+        </div>
       </div>
     </div>
 
@@ -1287,11 +1428,169 @@ body::after {
     loadTomorrow
   );
 
+  // ========== Daily Recurring Tasks ==========
+
+  const RECURRING_KEY  = 'daily_habits_v1';       // array of { id, text }
+  const DAILY_STATE_PREFIX = 'daily_state:';       // daily_state:YYYY-MM-DD → { id: done }
+
+  function getRecurring() {
+    const r = storeGet(RECURRING_KEY);
+    return Array.isArray(r) ? r : [];
+  }
+  function setRecurring(list) { storeSet(RECURRING_KEY, list); }
+
+  function getDailyState(dateStr) {
+    const s = storeGet(DAILY_STATE_PREFIX + dateStr);
+    return (s && typeof s === 'object') ? s : {};
+  }
+  function setDailyState(dateStr, state) {
+    try { localStorage.setItem(DAILY_STATE_PREFIX + dateStr, JSON.stringify(state)); } catch(e) {}
+  }
+
+  function renderDailyBar(habits, state) {
+    const bar = document.getElementById('dailyBar');
+    bar.innerHTML = '';
+    habits.forEach(h => {
+      const seg = document.createElement('div');
+      seg.className = 'gm-bar-seg' + (state[h.id] ? ' gm-bar-seg-done' : '');
+      bar.appendChild(seg);
+    });
+  }
+
+  function renderDailyHeader(habits, state) {
+    const total = habits.length;
+    const done  = habits.filter(h => state[h.id]).length;
+    document.getElementById('dailyProgressNum').textContent   = done;
+    document.getElementById('dailyProgressTotal').textContent = '/ ' + total;
+    const label = document.getElementById('dailyProgressLabel');
+    if (total === 0)         label.textContent = 'no habits yet';
+    else if (done === total) label.textContent = 'all done — great day';
+    else                     label.textContent = 'complete';
+    const card = document.getElementById('gmCardDaily');
+    card.classList.toggle('gm-all-done', total > 0 && done === total);
+    renderDailyBar(habits, state);
+  }
+
+  function loadDaily() {
+    const habits   = getRecurring();
+    const dateStr  = getActiveDateString();
+    const state    = getDailyState(dateStr);
+    const listEl   = document.getElementById('dailyList');
+    const emptyEl  = document.getElementById('dailyEmpty');
+
+    listEl.innerHTML = '';
+    emptyEl.style.display = habits.length === 0 ? 'block' : 'none';
+    renderDailyHeader(habits, state);
+
+    habits.forEach(h => {
+      const li = document.createElement('li');
+      li.className = 'gm-row gm-row-recurring' + (state[h.id] ? ' gm-row-done' : '');
+
+      const icon = document.createElement('span');
+      icon.className = 'gm-recurring-icon';
+      icon.textContent = '🔁';
+      li.appendChild(icon);
+
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'gm-check';
+      cb.checked = !!state[h.id];
+      cb.addEventListener('change', () => {
+        const s = getDailyState(getActiveDateString());
+        if (cb.checked) s[h.id] = Date.now();
+        else delete s[h.id];
+        setDailyState(getActiveDateString(), s);
+        loadDaily();
+      });
+      li.appendChild(cb);
+
+      const text = document.createElement('span');
+      text.className = 'gm-text';
+      text.textContent = h.text;
+      li.appendChild(text);
+
+      listEl.appendChild(li);
+    });
+  }
+
+  // ---- Manage drawer ----
+  function renderManageList() {
+    const habits = getRecurring();
+    const ul = document.getElementById('recurringManageList');
+    ul.innerHTML = '';
+    habits.forEach((h, idx) => {
+      const li = document.createElement('li');
+      li.className = 'gm-recurring-manage-row';
+
+      const textEl = document.createElement('span');
+      textEl.className = 'gm-recurring-manage-text';
+      textEl.textContent = h.text;
+      // inline edit
+      textEl.addEventListener('click', () => {
+        if (textEl.getAttribute('contenteditable') === 'true') return;
+        const original = textEl.textContent;
+        textEl.setAttribute('contenteditable', 'true');
+        textEl.focus();
+        const range = document.createRange();
+        range.selectNodeContents(textEl); range.collapse(false);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        function commit() {
+          const next = textEl.textContent.trim();
+          textEl.removeAttribute('contenteditable');
+          if (next && next !== original) {
+            const list = getRecurring(); list[idx].text = next; setRecurring(list);
+            loadDaily();
+          } else { textEl.textContent = original; }
+        }
+        textEl.addEventListener('blur', commit, { once: true });
+        textEl.addEventListener('keydown', function onKey(e) {
+          if (e.key === 'Enter') { e.preventDefault(); textEl.removeEventListener('keydown', onKey); textEl.blur(); }
+          else if (e.key === 'Escape') { e.preventDefault(); textEl.removeEventListener('keydown', onKey); textEl.removeAttribute('contenteditable'); textEl.textContent = original; }
+        });
+      });
+      li.appendChild(textEl);
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'gm-recurring-del';
+      del.textContent = '×';
+      del.addEventListener('click', () => {
+        const list = getRecurring(); list.splice(idx, 1); setRecurring(list);
+        renderManageList(); loadDaily();
+      });
+      li.appendChild(del);
+      ul.appendChild(li);
+    });
+  }
+
+  document.getElementById('gmManageBtn').addEventListener('click', () => {
+    const drawer = document.getElementById('gmManageDrawer');
+    const isOpen = drawer.classList.toggle('is-open');
+    document.getElementById('gmManageBtn').textContent = isOpen ? '✕ Close' : '⚙ Manage daily habits';
+    if (isOpen) renderManageList();
+  });
+
+  document.getElementById('recurringManageAddBtn').addEventListener('click', () => {
+    const input = document.getElementById('recurringManageInput');
+    const text = input.value.trim();
+    if (!text) return;
+    const list = getRecurring();
+    list.push({ id: 'hab_' + Date.now() + '_' + Math.random().toString(36).slice(2,7), text });
+    setRecurring(list);
+    input.value = '';
+    renderManageList();
+    loadDaily();
+  });
+  document.getElementById('recurringManageInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); document.getElementById('recurringManageAddBtn').click(); }
+  });
+
   // ---------- Boot ----------
   rollover();
   processStreak();
   loadToday();
   loadTomorrow();
+  loadDaily();
   renderStreak();
   updateDayRing();
   setInterval(updateDayRing, 60 * 1000);
@@ -1299,7 +1598,7 @@ body::after {
 
   // Re-render when storage changes from another tab (or our bridged parent).
   window.addEventListener('storage', () => {
-    loadToday(); loadTomorrow(); renderStreak();
+    loadToday(); loadTomorrow(); loadDaily(); renderStreak();
   });
 })();
 </script>
