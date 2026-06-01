@@ -1482,13 +1482,19 @@ body::after {
     emptyEl.style.display = habits.length === 0 ? 'block' : 'none';
     renderDailyHeader(habits, state);
 
-    habits.forEach(h => {
+    habits.forEach((h, idx) => {
       const li = document.createElement('li');
       li.className = 'gm-row gm-row-recurring' + (state[h.id] ? ' gm-row-done' : '');
+      li.dataset.idx = String(idx);
+
+      const handle = document.createElement('span');
+      handle.className = 'gm-handle';
+      handle.textContent = '\u22ee\u22ee';
+      li.appendChild(handle);
 
       const icon = document.createElement('span');
       icon.className = 'gm-recurring-icon';
-      icon.textContent = '🔁';
+      icon.textContent = '\uD83D\uDD01';
       li.appendChild(icon);
 
       const cb = document.createElement('input');
@@ -1508,6 +1514,29 @@ body::after {
       text.className = 'gm-text';
       text.textContent = h.text;
       li.appendChild(text);
+
+      li.setAttribute('draggable', 'true');
+      li.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(idx));
+      });
+      li.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        li.classList.add('is-drag-over');
+      });
+      li.addEventListener('dragleave', () => li.classList.remove('is-drag-over'));
+      li.addEventListener('drop', (e) => {
+        e.preventDefault();
+        li.classList.remove('is-drag-over');
+        const from = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        const to   = parseInt(li.dataset.idx, 10);
+        if (isNaN(from) || isNaN(to) || from === to) return;
+        const list = getRecurring();
+        const [moved] = list.splice(from, 1);
+        list.splice(to, 0, moved);
+        setRecurring(list);
+        loadDaily();
+      });
 
       listEl.appendChild(li);
     });
@@ -1607,7 +1636,7 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof initCloudSync !== 'function') return;
   initCloudSync({
     appKey: 'goals',
-    syncedPrefixes: ['goals:'],
+    syncedPrefixes: ['goals:', 'daily_habits_v1', 'daily_state:'],
     onApplied: function () {
       window.dispatchEvent(new CustomEvent('goals-changed'));
       window.dispatchEvent(new Event('storage'));
