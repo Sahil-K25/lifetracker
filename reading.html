@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#050506">
+<meta name="color-scheme" content="dark">
+<title>Reading — Life Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="sync.js" defer></script>
+<script src="topbar.js" defer></script>
+<style>
+:root {
+  --bg: #050506;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --bg-secondary: rgba(255, 255, 255, 0.035);
+  --bg-input: rgba(0, 0, 0, 0.28);
+  --bg-input-focus: rgba(0, 0, 0, 0.36);
+
+  --border: rgba(255, 255, 255, 0.06);
+  --border-soft: rgba(255, 255, 255, 0.04);
+  --border-strong: rgba(255, 255, 255, 0.12);
+
+  --text-primary: #FAFAFA;
+  --text-secondary: #B8B6B0;
+  --text-tertiary: #76746E;
+  --text-quaternary: #4D4B47;
+
+  --accent: #C084A0;
+  --accent-rgb: 192, 132, 160;
+  --accent-glow: rgba(192, 132, 160, 0.30);
+  --accent-bg: rgba(192, 132, 160, 0.10);
+  --accent-border: rgba(192, 132, 160, 0.22);
+
+  --success: #6BE3A4;
+  --success-bg: rgba(107, 227, 164, 0.10);
+  --success-border: rgba(107, 227, 164, 0.22);
+
+  --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0;
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-family: var(--font);
+  font-size: 15px; line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+body { min-height: 100vh; }
+
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background:
+    radial-gradient(60% 50% at 80% 10%, rgba(192, 132, 160, 0.13) 0%, transparent 60%),
+    radial-gradient(50% 40% at 20% 90%, rgba(107, 227, 164, 0.06) 0%, transparent 60%);
+  filter: blur(40px);
+  pointer-events: none; z-index: 0;
+}
+
+main {
+  position: relative; z-index: 1;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 20px 80px;
+}
+
+/* ===== Page header ===== */
+.page-header {
+  margin-bottom: 28px;
+}
+.page-title {
+  font-size: 26px; font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin: 0 0 4px;
+}
+.page-sub {
+  font-size: 12px; color: var(--text-tertiary);
+  font-weight: 500; letter-spacing: 0.04em;
+}
+
+/* ===== Streak + Year goal bar ===== */
+.stats-row {
+  display: flex; gap: 10px;
+  margin-bottom: 24px;
+}
+.stat-pill {
+  flex: 1;
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  backdrop-filter: blur(20px);
+}
+.stat-pill-icon { font-size: 18px; flex-shrink: 0; }
+.stat-pill-body { min-width: 0; }
+.stat-pill-num {
+  font-family: var(--font-mono);
+  font-size: 18px; font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.stat-pill-label {
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+.stat-pill.streak-active {
+  background: rgba(242, 192, 99, 0.08);
+  border-color: rgba(242, 192, 99, 0.22);
+}
+.stat-pill.streak-active .stat-pill-num { color: #F2C063; }
+.stat-pill.year-progress {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.year-progress-top {
+  display: flex; align-items: center;
+  justify-content: space-between; width: 100%;
+}
+.year-progress-bar-wrap {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.year-progress-bar-fill {
+  height: 100%; border-radius: 2px;
+  background: var(--accent);
+  transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ===== Section title ===== */
+.section-title {
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text-tertiary);
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 12px;
+}
+.section-title::before {
+  content: ''; width: 18px; height: 1px;
+  background: var(--text-tertiary); opacity: 0.6;
+}
+.section-title::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent);
+}
+
+/* ===== Cards ===== */
+.rd-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 18px;
+  margin-bottom: 10px;
+  backdrop-filter: blur(24px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  transition: background 0.2s;
+}
+.rd-card:hover { background: rgba(255,255,255,0.05); }
+
+/* ===== Book card (current reads) ===== */
+.book-card {
+  display: flex; flex-direction: column; gap: 12px;
+}
+.book-top {
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.book-icon-wrap {
+  width: 44px; height: 58px; flex-shrink: 0;
+  border-radius: 6px;
+  background: linear-gradient(135deg, var(--accent-bg), rgba(255,255,255,0.04));
+  border: 1px solid var(--accent-border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+.book-meta { flex: 1; min-width: 0; }
+.book-title {
+  font-size: 15px; font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.book-author {
+  font-size: 12px; color: var(--text-tertiary);
+  margin-top: 2px;
+}
+.book-pages {
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-tertiary);
+  margin-top: 4px;
+}
+.book-actions {
+  display: flex; gap: 6px; align-items: center;
+  flex-shrink: 0;
+}
+.book-action-btn {
+  border: 1px solid var(--border-strong);
+  background: rgba(255,255,255,0.04);
+  color: var(--text-tertiary);
+  font-family: var(--font);
+  font-size: 11px; font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px; cursor: pointer;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.book-action-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.20);
+}
+.book-action-btn.finish-btn:hover {
+  color: var(--success);
+  border-color: var(--success-border);
+  background: var(--success-bg);
+}
+.book-action-btn.del-btn:hover {
+  color: #ff8a8a;
+  border-color: rgba(255,138,138,0.30);
+  background: rgba(255,138,138,0.07);
+}
+
+/* Progress bar */
+.book-progress-wrap { display: flex; flex-direction: column; gap: 6px; }
+.book-progress-bar-bg {
+  height: 6px; border-radius: 3px;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.book-progress-bar-fill {
+  height: 100%; border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), rgba(var(--accent-rgb),0.6));
+  transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+.book-progress-text {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.book-progress-pct {
+  font-family: var(--font-mono);
+  font-size: 11px; font-weight: 700;
+  color: var(--accent);
+}
+.book-progress-pace {
+  font-size: 11px; color: var(--text-quaternary);
+}
+
+/* Log session inline form */
+.log-session-wrap {
+  display: flex; gap: 8px; align-items: center;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+  flex-wrap: wrap;
+}
+.log-session-label {
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.log-session-input {
+  width: 80px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px; text-align: center;
+  outline: none;
+  transition: border-color 0.18s;
+}
+.log-session-input:focus { border-color: var(--accent); }
+.log-session-input::placeholder { color: var(--text-quaternary); }
+.log-session-btn {
+  padding: 7px 16px;
+  border: 0; border-radius: 9px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8E5DD 100%);
+  color: #0A0A0B;
+  font-family: var(--font); font-size: 12px; font-weight: 700;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 8px rgba(0,0,0,0.35);
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+.log-session-btn:hover { transform: translateY(-1px); }
+.log-session-btn:active { transform: scale(0.97); }
+.log-flash {
+  font-size: 11px; color: var(--success);
+  font-weight: 600;
+}
+
+/* Empty state */
+.rd-empty {
+  text-align: center;
+  padding: 28px 0;
+  font-size: 13px; font-style: italic;
+  color: var(--text-tertiary);
+}
+
+/* ===== Session history ===== */
+.session-log {
+  margin-top: 8px;
+  display: none;
+}
+.session-log.is-open { display: block; }
+.session-log-title {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-quaternary);
+  margin-bottom: 6px;
+}
+.session-entry {
+  display: flex; justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border-soft);
+  font-size: 12px; color: var(--text-tertiary);
+}
+.session-entry:last-child { border-bottom: 0; }
+.session-pages { font-family: var(--font-mono); color: var(--text-secondary); }
+.session-toggle-btn {
+  background: none; border: none;
+  color: var(--text-quaternary);
+  font-family: var(--font); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; padding: 4px 0;
+  margin-top: 6px;
+  transition: color 0.15s;
+}
+.session-toggle-btn:hover { color: var(--text-tertiary); }
+
+/* ===== Add book form ===== */
+.add-book-card {
+  border: 1px dashed rgba(255,255,255,0.10);
+  background: transparent;
+  box-shadow: none;
+}
+.add-book-card:hover { background: rgba(255,255,255,0.02); }
+.add-book-eyebrow {
+  font-size: 10.5px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
+}
+.add-book-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.add-book-input {
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font); font-size: 13px;
+  outline: none;
+  transition: border-color 0.18s, background 0.18s;
+  width: 100%;
+}
+.add-book-input::placeholder { color: var(--text-tertiary); }
+.add-book-input:focus { border-color: var(--accent); background: var(--bg-input-focus); }
+.add-book-input.full { grid-column: 1 / -1; }
+.add-book-btn {
+  grid-column: 1 / -1;
+  padding: 11px;
+  border: 0; border-radius: 11px;
+  background: linear-gradient(180deg, #FFFFFF 0%, #E8E5DD 100%);
+  color: #0A0A0B;
+  font-family: var(--font); font-size: 13px; font-weight: 700;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 10px rgba(0,0,0,0.35);
+  transition: transform 0.1s, box-shadow 0.15s;
+}
+.add-book-btn:hover { transform: translateY(-1px); }
+.add-book-btn:active { transform: scale(0.97); }
+
+/* ===== Shelf tabs ===== */
+.shelf-tabs {
+  display: flex; gap: 4px;
+  margin-bottom: 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+}
+.shelf-tab {
+  flex: 1; text-align: center;
+  padding: 8px 4px;
+  border-radius: 9px;
+  background: none; border: none;
+  color: var(--text-tertiary);
+  font-family: var(--font);
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s;
+}
+.shelf-tab.active {
+  background: rgba(255,255,255,0.07);
+  color: var(--text-primary);
+}
+.shelf-panel { display: none; }
+.shelf-panel.active { display: block; }
+
+/* ===== Shelf items (finished + want to read) ===== */
+.shelf-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+.shelf-item:hover { background: rgba(255,255,255,0.05); }
+.shelf-item-icon { font-size: 20px; flex-shrink: 0; }
+.shelf-item-body { flex: 1; min-width: 0; }
+.shelf-item-title {
+  font-size: 14px; font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.shelf-item-author { font-size: 12px; color: var(--text-tertiary); }
+.shelf-item-meta { font-size: 11px; color: var(--text-quaternary); margin-top: 2px; }
+.shelf-item-right {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 6px; flex-shrink: 0;
+}
+
+/* Star rating */
+.star-row { display: flex; gap: 2px; }
+.star-btn {
+  background: none; border: none;
+  font-size: 16px; cursor: pointer; padding: 0;
+  line-height: 1; color: var(--text-quaternary);
+  transition: color 0.1s, transform 0.1s;
+}
+.star-btn:hover, .star-btn.lit { color: #F2C063; }
+.star-btn:hover { transform: scale(1.2); }
+
+/* Notes */
+.shelf-note {
+  width: 100%; margin-top: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-input);
+  color: var(--text-secondary);
+  font-family: var(--font); font-size: 12px;
+  resize: none; outline: none;
+  transition: border-color 0.18s;
+  display: none;
+}
+.shelf-note:focus { border-color: var(--accent); }
+.shelf-note.visible { display: block; }
+.shelf-note-toggle {
+  background: none; border: none;
+  color: var(--text-quaternary);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.06em; text-transform: uppercase;
+  cursor: pointer; padding: 0;
+  transition: color 0.15s;
+}
+.shelf-note-toggle:hover { color: var(--text-tertiary); }
+
+/* Want to read add form */
+.want-add-row {
+  display: flex; gap: 8px; margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+.want-add-input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font-family: var(--font); font-size: 13px;
+  outline: none;
+  transition: border-color 0.18s;
+}
+.want-add-input::placeholder { color: var(--text-tertiary); }
+.want-add-input:focus { border-color: var(--accent); }
+.want-add-btn {
+  padding: 9px 16px;
+  border: 0; border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  color: var(--text-primary);
+  font-family: var(--font); font-size: 12px; font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.want-add-btn:hover { background: rgba(255,255,255,0.13); }
+
+/* Want item — move to reading btn */
+.want-start-btn {
+  background: none; border: 1px solid var(--accent-border);
+  color: var(--accent);
+  font-family: var(--font); font-size: 11px; font-weight: 600;
+  padding: 5px 10px; border-radius: 7px; cursor: pointer;
+  transition: background 0.15s;
+}
+.want-start-btn:hover { background: var(--accent-bg); }
+
+/* del button shared */
+.shelf-del-btn {
+  background: none; border: none;
+  color: var(--text-quaternary);
+  font-size: 16px; cursor: pointer; padding: 2px 4px;
+  opacity: 0.6; transition: opacity 0.15s, color 0.15s;
+}
+.shelf-del-btn:hover { opacity: 1; color: #ff8a8a; }
+.shelf-move-back-btn {
+  background: none; border: 1px solid var(--border);
+  color: var(--text-tertiary);
+  font-size: 11px; cursor: pointer; padding: 3px 7px;
+  border-radius: 6px; opacity: 0.7;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.shelf-move-back-btn:hover { opacity: 1; color: var(--accent); border-color: var(--accent); }
+
+/* ===== Mobile ===== */
+@media (max-width: 600px) {
+  main { padding: 24px 14px 80px; }
+  .stats-row { flex-direction: column; }
+  .add-book-row { grid-template-columns: 1fr; }
+  .add-book-input.full { grid-column: 1; }
+  .add-book-btn { grid-column: 1; }
+  .book-top { flex-wrap: wrap; }
+  .log-session-wrap { flex-wrap: wrap; }
+  .log-session-input { width: 70px; }
+}
+
+::selection { background: rgba(192, 132, 160, 0.3); color: var(--text-primary); }
+::-webkit-scrollbar { width: 0; height: 0; display: none; }
+</style>
+</head>
+<body>
+<main>
+  <div class="page-header">
+    <h1 class="page-title">📚 Reading</h1>
+    <div class="page-sub">Track your books, sessions, and progress</div>
+  </div>
+
+  <!-- Stats row -->
+  <div class="stats-row">
+    <div class="stat-pill" id="streakPill">
+      <div class="stat-pill-icon">🔥</div>
+      <div class="stat-pill-body">
+        <div class="stat-pill-num" id="streakNum">0</div>
+        <div class="stat-pill-label">day streak</div>
+      </div>
+    </div>
+    <div class="stat-pill">
+      <div class="stat-pill-icon">📖</div>
+      <div class="stat-pill-body">
+        <div class="stat-pill-num" id="totalDone">0</div>
+        <div class="stat-pill-label">books read</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Currently reading -->
+  <div class="section-title">Currently Reading</div>
+  <div id="currentBooksWrap">
+    <div class="rd-empty" id="currentEmpty">No books in progress — add one below.</div>
+  </div>
+
+  <!-- Add book -->
+  <div class="rd-card add-book-card" style="margin-top:4px;">
+    <div class="add-book-eyebrow">Add to currently reading</div>
+    <div class="add-book-row">
+      <input id="addTitle"  class="add-book-input full" type="text" placeholder="Title" autocomplete="off">
+      <input id="addAuthor" class="add-book-input" type="text" placeholder="Author" autocomplete="off">
+      <input id="addPages"  class="add-book-input" type="number" placeholder="Total pages" min="1" autocomplete="off">
+      <button id="addBookBtn" class="add-book-btn">+ Start Reading</button>
+    </div>
+  </div>
+
+  <!-- Shelf -->
+  <div class="section-title" style="margin-top:24px;">Shelf</div>
+  <div class="shelf-tabs">
+    <button class="shelf-tab active" data-tab="finished">✓ Finished</button>
+    <button class="shelf-tab" data-tab="want">♡ Want to Read</button>
+  </div>
+
+  <div class="shelf-panel active" id="panel-finished">
+    <div class="rd-empty" id="finishedEmpty">No finished books yet.</div>
+  </div>
+
+  <div class="shelf-panel" id="panel-want">
+    <div class="rd-empty" id="wantEmpty">Nothing on your list yet.</div>
+    <div class="want-add-row">
+      <input id="wantTitle"  class="want-add-input" type="text" placeholder="Book title…" autocomplete="off">
+      <input id="wantAuthor" class="want-add-input" type="text" placeholder="Author (optional)" autocomplete="off" style="max-width:140px;">
+      <button id="wantAddBtn" class="want-add-btn">+ Add</button>
+    </div>
+  </div>
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---- Storage ----
+  function sg(k)    { try { return JSON.parse(localStorage.getItem(k)); } catch(e) { return null; } }
+  function ss(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} }
+
+  const BOOKS_KEY   = 'reading_books_v1';    // array of book objects (current + meta)
+  const SHELF_KEY   = 'reading_shelf_v1';    // { finished: [], want: [] }
+  const STREAK_KEY  = 'reading_streak_v1';   // { count, lastDate }
+  const SESSIONS_KEY= 'reading_sessions_v1'; // { bookId: [{date, pages}] }
+  const YEAR_KEY    = 'reading_year_v1';     // { goal: 24 }
+
+  function getBooks()    { const b = sg(BOOKS_KEY);    return Array.isArray(b) ? b : []; }
+  function setBooks(b)   { ss(BOOKS_KEY, b); }
+  function getShelf()    { const s = sg(SHELF_KEY);    return s && typeof s === 'object' ? s : { finished: [], want: [] }; }
+  function setShelf(s)   { ss(SHELF_KEY, s); }
+  function getStreak()   { const s = sg(STREAK_KEY);   return s && typeof s === 'number' ? { count: s, lastDate: '' } : (s || { count: 0, lastDate: '' }); }
+  function setStreak(s)  { ss(STREAK_KEY, s); }
+  function getSessions() { const s = sg(SESSIONS_KEY); return (s && typeof s === 'object') ? s : {}; }
+  function setSessions(s){ ss(SESSIONS_KEY, s); }
+  function getYearCfg()  { const y = sg(YEAR_KEY);     return (y && typeof y === 'object') ? y : { goal: 24 }; }
+  function setYearCfg(y) { ss(YEAR_KEY, y); }
+
+  // ---- Date helpers ----
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+  }
+  function thisYear() { return new Date().getFullYear(); }
+  function friendlyDate(iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const dt = new Date(y, m-1, d);
+    const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][dt.getMonth()];
+    return mo + ' ' + dt.getDate();
+  }
+
+  // ---- Streak logic ----
+  function updateStreak() {
+    const s = getStreak();
+    const today = todayStr();
+    if (s.lastDate === today) return; // already logged today
+    const yesterday = (() => {
+      const d = new Date(); d.setDate(d.getDate()-1);
+      return d.getFullYear() + '-' + pad2(d.getMonth()+1) + '-' + pad2(d.getDate());
+    })();
+    if (s.lastDate === yesterday) { s.count += 1; }
+    else if (s.lastDate === '') { s.count = 1; }
+    else { s.count = 1; } // broke streak
+    s.lastDate = today;
+    setStreak(s);
+  }
+
+  // ---- Render streak pill ----
+  function renderStreak() {
+    const s = getStreak();
+    document.getElementById('streakNum').textContent = s.count;
+    const pill = document.getElementById('streakPill');
+    pill.classList.toggle('streak-active', s.count > 0);
+  }
+
+  // ---- Render total books read ----
+  function renderYearGoal() {
+    const shelf = getShelf();
+    const total = (shelf.finished || []).length;
+    document.getElementById('totalDone').textContent = total;
+  }
+
+  // ---- Build a book card ----
+  function buildBookCard(book) {
+    const sessions = getSessions();
+    const bookSessions = sessions[book.id] || [];
+    const totalPages = book.totalPages || 0;
+    const currentPage = book.currentPage || 0;
+    const pct = totalPages > 0 ? Math.min(100, Math.round(currentPage / totalPages * 100)) : 0;
+
+    // pace: pages per session average
+    const avgPages = bookSessions.length > 0
+      ? Math.round(bookSessions.reduce((s, e) => s + e.pages, 0) / bookSessions.length)
+      : null;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'rd-card';
+    wrap.dataset.id = book.id;
+
+    // Top row
+    const top = document.createElement('div');
+    top.className = 'book-card';
+
+    const topRow = document.createElement('div');
+    topRow.className = 'book-top';
+
+    // Icon
+    const iconWrap = document.createElement('div');
+    iconWrap.className = 'book-icon-wrap';
+    iconWrap.textContent = '📖';
+    topRow.appendChild(iconWrap);
+
+    // Meta
+    const meta = document.createElement('div');
+    meta.className = 'book-meta';
+    meta.innerHTML =
+      '<div class="book-title">' + esc(book.title) + '</div>' +
+      '<div class="book-author">' + esc(book.author || 'Unknown author') + '</div>' +
+      (totalPages ? '<div class="book-pages">p. ' + currentPage + ' / ' + totalPages + '</div>' : '');
+    topRow.appendChild(meta);
+
+    // Action buttons
+    const actions = document.createElement('div');
+    actions.className = 'book-actions';
+
+    const finishBtn = document.createElement('button');
+    finishBtn.className = 'book-action-btn finish-btn';
+    finishBtn.textContent = '✓ Done';
+    finishBtn.addEventListener('click', () => finishBook(book.id));
+    actions.appendChild(finishBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'book-action-btn del-btn';
+    delBtn.textContent = '✕';
+    delBtn.title = 'Remove';
+    let delConfirmTimer = null;
+    delBtn.addEventListener('click', () => {
+      if (delBtn.dataset.confirm === '1') {
+        clearTimeout(delConfirmTimer);
+        removeCurrentBook(book.id);
+      } else {
+        delBtn.dataset.confirm = '1';
+        delBtn.textContent = 'Remove?';
+        delBtn.style.color = '#ff8a8a';
+        delBtn.style.borderColor = 'rgba(255,138,138,0.40)';
+        delConfirmTimer = setTimeout(() => {
+          delBtn.dataset.confirm = '';
+          delBtn.textContent = '✕';
+          delBtn.style.color = '';
+          delBtn.style.borderColor = '';
+        }, 2500);
+      }
+    });
+    actions.appendChild(delBtn);
+
+    topRow.appendChild(actions);
+    top.appendChild(topRow);
+
+    // Progress bar
+    if (totalPages > 0) {
+      const progWrap = document.createElement('div');
+      progWrap.className = 'book-progress-wrap';
+      const barBg = document.createElement('div');
+      barBg.className = 'book-progress-bar-bg';
+      const barFill = document.createElement('div');
+      barFill.className = 'book-progress-bar-fill';
+      barFill.style.width = pct + '%';
+      barBg.appendChild(barFill);
+      progWrap.appendChild(barBg);
+      const progText = document.createElement('div');
+      progText.className = 'book-progress-text';
+      progText.innerHTML =
+        '<span class="book-progress-pct">' + pct + '%</span>' +
+        '<span class="book-progress-pace">' +
+          (avgPages ? '~' + avgPages + ' pages/session avg' : 'No sessions yet') +
+        '</span>';
+      progWrap.appendChild(progText);
+      top.appendChild(progWrap);
+    }
+
+    // Log session row
+    const logWrap = document.createElement('div');
+    logWrap.className = 'log-session-wrap';
+    const logLabel = document.createElement('span');
+    logLabel.className = 'log-session-label';
+    logLabel.textContent = 'Log';
+    logWrap.appendChild(logLabel);
+
+    const logInput = document.createElement('input');
+    logInput.className = 'log-session-input';
+    logInput.type = 'number'; logInput.min = '1';
+    logInput.placeholder = 'pages';
+    logWrap.appendChild(logInput);
+
+    const logBtn = document.createElement('button');
+    logBtn.className = 'log-session-btn';
+    logBtn.textContent = 'Save';
+    logWrap.appendChild(logBtn);
+
+    const logFlash = document.createElement('span');
+    logFlash.className = 'log-flash';
+    logWrap.appendChild(logFlash);
+
+    logBtn.addEventListener('click', () => {
+      const pages = parseInt(logInput.value, 10);
+      if (!pages || pages < 1) return;
+      logSession(book.id, pages);
+      logInput.value = '';
+      logFlash.textContent = '+' + pages + ' pages ✓';
+      setTimeout(() => { logFlash.textContent = ''; }, 2500);
+    });
+    logInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') logBtn.click(); });
+    top.appendChild(logWrap);
+
+    // Session history toggle
+    if (bookSessions.length > 0) {
+      const toggleBtn = document.createElement('button');
+      toggleBtn.className = 'session-toggle-btn';
+      toggleBtn.textContent = 'Show session history ▾';
+      top.appendChild(toggleBtn);
+
+      const logDiv = document.createElement('div');
+      logDiv.className = 'session-log';
+      const logTitle = document.createElement('div');
+      logTitle.className = 'session-log-title';
+      logTitle.textContent = 'Session history';
+      logDiv.appendChild(logTitle);
+
+      const recent = bookSessions.slice().reverse().slice(0, 10);
+      recent.forEach(e => {
+        const row = document.createElement('div');
+        row.className = 'session-entry';
+        row.innerHTML =
+          '<span>' + friendlyDate(e.date) + '</span>' +
+          '<span class="session-pages">+' + e.pages + ' pages</span>';
+        logDiv.appendChild(row);
+      });
+      top.appendChild(logDiv);
+
+      toggleBtn.addEventListener('click', () => {
+        const open = logDiv.classList.toggle('is-open');
+        toggleBtn.textContent = open ? 'Hide session history ▴' : 'Show session history ▾';
+      });
+    }
+
+    wrap.appendChild(top);
+    return wrap;
+  }
+
+  // ---- Render current books ----
+  function renderCurrent() {
+    const books = getBooks();
+    const wrap = document.getElementById('currentBooksWrap');
+    const empty = document.getElementById('currentEmpty');
+    wrap.querySelectorAll('.rd-card').forEach(el => el.remove());
+    empty.style.display = books.length === 0 ? 'block' : 'none';
+    books.forEach(b => wrap.insertBefore(buildBookCard(b), empty));
+  }
+
+  // ---- Log a reading session ----
+  function logSession(bookId, pages) {
+    // update sessions
+    const sessions = getSessions();
+    if (!sessions[bookId]) sessions[bookId] = [];
+    const today = todayStr();
+    // merge same-day entries
+    const todayEntry = sessions[bookId].find(e => e.date === today);
+    if (todayEntry) todayEntry.pages += pages;
+    else sessions[bookId].push({ date: today, pages });
+    setSessions(sessions);
+
+    // update currentPage on the book
+    const books = getBooks();
+    const book = books.find(b => b.id === bookId);
+    if (book) {
+      book.currentPage = Math.min(book.totalPages || Infinity, (book.currentPage || 0) + pages);
+      setBooks(books);
+    }
+
+    // update streak
+    updateStreak();
+    renderStreak();
+    renderCurrent();
+  }
+
+  // ---- Finish book ----
+  function finishBook(bookId) {
+    const books = getBooks();
+    const idx = books.findIndex(b => b.id === bookId);
+    if (idx === -1) return;
+    const book = books[idx];
+    books.splice(idx, 1);
+    setBooks(books);
+
+    const shelf = getShelf();
+    shelf.finished = shelf.finished || [];
+    shelf.finished.unshift({
+      id: book.id, title: book.title, author: book.author,
+      totalPages: book.totalPages || 0, currentPage: book.currentPage || 0,
+      finishedDate: todayStr(), rating: 0, note: ''
+    });
+    setShelf(shelf);
+
+    updateStreak();
+    renderAll();
+  }
+
+  function removeCurrentBook(bookId) {
+    const books = getBooks().filter(b => b.id !== bookId);
+    setBooks(books);
+    renderCurrent();
+  }
+
+  // ---- Render finished shelf ----
+  function renderFinished() {
+    const shelf = getShelf();
+    const finished = shelf.finished || [];
+    const panel = document.getElementById('panel-finished');
+    const empty = document.getElementById('finishedEmpty');
+    panel.querySelectorAll('.shelf-item-wrap').forEach(el => el.remove());
+    empty.style.display = finished.length === 0 ? 'block' : 'none';
+
+    finished.forEach((book, idx) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'shelf-item-wrap';
+
+      const item = document.createElement('div');
+      item.className = 'shelf-item';
+      item.style.flexDirection = 'column';
+      item.style.alignItems = 'stretch';
+
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:center;gap:12px;';
+
+      const icon = document.createElement('div');
+      icon.className = 'shelf-item-icon';
+      icon.textContent = '✅';
+      row.appendChild(icon);
+
+      const body = document.createElement('div');
+      body.className = 'shelf-item-body';
+      body.innerHTML =
+        '<div class="shelf-item-title">' + esc(book.title) + '</div>' +
+        '<div class="shelf-item-author">' + esc(book.author || '') + '</div>' +
+        (book.finishedDate ? '<div class="shelf-item-meta">Finished ' + friendlyDate(book.finishedDate) + '</div>' : '');
+      row.appendChild(body);
+
+      const right = document.createElement('div');
+      right.className = 'shelf-item-right';
+
+      // Stars
+      const stars = document.createElement('div');
+      stars.className = 'star-row';
+      for (let i = 1; i <= 5; i++) {
+        const s = document.createElement('button');
+        s.className = 'star-btn' + (i <= book.rating ? ' lit' : '');
+        s.textContent = '★';
+        s.addEventListener('click', () => {
+          const sh = getShelf();
+          sh.finished[idx].rating = i;
+          setShelf(sh); renderFinished();
+        });
+        stars.appendChild(s);
+      }
+      right.appendChild(stars);
+
+      // Note toggle
+      const noteToggle = document.createElement('button');
+      noteToggle.className = 'shelf-note-toggle';
+      noteToggle.textContent = book.note ? '✎ Note' : '+ Note';
+      right.appendChild(noteToggle);
+
+      // Move back to reading
+      const moveBack = document.createElement('button');
+      moveBack.className = 'shelf-move-back-btn';
+      moveBack.textContent = '↩ Reading';
+      moveBack.title = 'Move back to currently reading';
+      moveBack.addEventListener('click', () => {
+        const sh = getShelf();
+        const b = sh.finished[idx];
+        sh.finished.splice(idx, 1);
+        setShelf(sh);
+        const books = getBooks();
+        books.push({ id: b.id, title: b.title, author: b.author || '', totalPages: b.totalPages || 0, currentPage: b.currentPage || 0, addedDate: todayStr() });
+        setBooks(books);
+        renderAll();
+      });
+      right.appendChild(moveBack);
+
+      // Del
+      const del = document.createElement('button');
+      del.className = 'shelf-del-btn';
+      del.textContent = '×';
+      del.addEventListener('click', () => {
+        const sh = getShelf();
+        sh.finished.splice(idx, 1);
+        setShelf(sh); renderFinished(); renderYearGoal();
+      });
+      right.appendChild(del);
+
+      row.appendChild(right);
+      item.appendChild(row);
+
+      // Note textarea
+      const note = document.createElement('textarea');
+      note.className = 'shelf-note' + (book.note ? ' visible' : '');
+      note.rows = 2;
+      note.placeholder = 'Your thoughts…';
+      note.value = book.note || '';
+      note.addEventListener('input', () => {
+        const sh = getShelf();
+        sh.finished[idx].note = note.value;
+        setShelf(sh);
+      });
+      item.appendChild(note);
+
+      noteToggle.addEventListener('click', () => {
+        note.classList.toggle('visible');
+        noteToggle.textContent = note.classList.contains('visible') ? '✎ Note' : '+ Note';
+        if (note.classList.contains('visible')) note.focus();
+      });
+
+      wrap.appendChild(item);
+      panel.insertBefore(wrap, empty);
+    });
+
+    renderYearGoal();
+  }
+
+  // ---- Render want to read ----
+  function renderWant() {
+    const shelf = getShelf();
+    const want = shelf.want || [];
+    const panel = document.getElementById('panel-want');
+    const empty = document.getElementById('wantEmpty');
+    panel.querySelectorAll('.shelf-item-wrap').forEach(el => el.remove());
+    empty.style.display = want.length === 0 ? 'block' : 'none';
+
+    want.forEach((book, idx) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'shelf-item-wrap';
+
+      const item = document.createElement('div');
+      item.className = 'shelf-item';
+
+      const icon = document.createElement('div');
+      icon.className = 'shelf-item-icon';
+      icon.textContent = '🔖';
+      item.appendChild(icon);
+
+      const body = document.createElement('div');
+      body.className = 'shelf-item-body';
+      body.innerHTML =
+        '<div class="shelf-item-title">' + esc(book.title) + '</div>' +
+        (book.author ? '<div class="shelf-item-author">' + esc(book.author) + '</div>' : '');
+      item.appendChild(body);
+
+      const right = document.createElement('div');
+      right.className = 'shelf-item-right';
+
+      const startBtn = document.createElement('button');
+      startBtn.className = 'want-start-btn';
+      startBtn.textContent = '▶ Start';
+      startBtn.addEventListener('click', () => {
+        const sh = getShelf();
+        const b = sh.want[idx];
+        sh.want.splice(idx, 1);
+        setShelf(sh);
+        // add to current books
+        const books = getBooks();
+        books.push({ id: 'bk_' + Date.now(), title: b.title, author: b.author || '', totalPages: 0, currentPage: 0 });
+        setBooks(books);
+        renderAll();
+      });
+      right.appendChild(startBtn);
+
+      const del = document.createElement('button');
+      del.className = 'shelf-del-btn';
+      del.textContent = '×';
+      del.addEventListener('click', () => {
+        const sh = getShelf();
+        sh.want.splice(idx, 1);
+        setShelf(sh); renderWant();
+      });
+      right.appendChild(del);
+
+      item.appendChild(right);
+      wrap.appendChild(item);
+      panel.insertBefore(wrap, empty);
+    });
+  }
+
+  function renderAll() {
+    renderCurrent();
+    renderFinished();
+    renderWant();
+    renderStreak();
+    renderYearGoal();
+  }
+
+  // ---- Add book ----
+  document.getElementById('addBookBtn').addEventListener('click', () => {
+    const title  = document.getElementById('addTitle').value.trim();
+    const author = document.getElementById('addAuthor').value.trim();
+    const pages  = parseInt(document.getElementById('addPages').value, 10) || 0;
+    if (!title) { document.getElementById('addTitle').focus(); return; }
+    const books = getBooks();
+    books.push({ id: 'bk_' + Date.now(), title, author, totalPages: pages, currentPage: 0 });
+    setBooks(books);
+    document.getElementById('addTitle').value = '';
+    document.getElementById('addAuthor').value = '';
+    document.getElementById('addPages').value = '';
+    renderCurrent();
+  });
+  ['addTitle','addAuthor','addPages'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('addBookBtn').click();
+    });
+  });
+
+  // ---- Shelf tabs ----
+  document.querySelectorAll('.shelf-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.shelf-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.shelf-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ---- Want to read add ----
+  document.getElementById('wantAddBtn').addEventListener('click', () => {
+    const title  = document.getElementById('wantTitle').value.trim();
+    const author = document.getElementById('wantAuthor').value.trim();
+    if (!title) return;
+    const shelf = getShelf();
+    shelf.want = shelf.want || [];
+    shelf.want.push({ id: 'wnt_' + Date.now(), title, author });
+    setShelf(shelf);
+    document.getElementById('wantTitle').value = '';
+    document.getElementById('wantAuthor').value = '';
+    renderWant();
+  });
+  ['wantTitle','wantAuthor'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') document.getElementById('wantAddBtn').click();
+    });
+  });
+
+  // ---- Escape helper ----
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // ---- Boot ----
+  renderAll();
+
+  window.addEventListener('storage', renderAll);
+})();
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (typeof initCloudSync !== 'function') return;
+  initCloudSync({
+    appKey: 'reading',
+    syncedKeys: [
+      'reading_books_v1',
+      'reading_shelf_v1',
+      'reading_streak_v1',
+      'reading_sessions_v1',
+      'reading_year_v1'
+    ],
+    onApplied: function () {
+      window.dispatchEvent(new Event('storage'));
+    }
+  });
+});
+</script>
+</body>
+</html>
