@@ -1469,7 +1469,7 @@ img, video, canvas, svg { max-width: 100%; }
 
     <!-- Log a set -->
     <div class="po-sub-section">
-      <div class="po-sub-title">Log today's top set</div>
+      <div class="po-sub-title">Log a set</div>
       <div class="po-bw-banner" id="bwBanner">Bodyweight — log reps only</div>
       <div class="po-last-set" id="lastSet">
         <span class="po-last-label">Last time</span>
@@ -1604,10 +1604,6 @@ img, video, canvas, svg { max-width: 100%; }
       <input type="checkbox" id="exBw">
       Bodyweight (track reps only, no weight)
     </label>
-    <div class="po-field" id="exStartWeightField">
-      <label style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Starting weight</label>
-      <input type="number" id="exStartWeight" step="0.5" placeholder="20" value="20">
-    </div>
     <div class="po-log-grid" id="exNumFields">
       <div class="po-field">
         <label style="font-size:11px;color:var(--text-3);font-weight:700;letter-spacing:0.04em;text-transform:uppercase">Reps min</label>
@@ -1773,20 +1769,42 @@ img, video, canvas, svg { max-width: 100%; }
   }
   function getLogs() { return (state.logs[state.currentEx] || []).slice(); }
 
+  // Groups all logs by calendar day, returns top set per session sorted oldest-first.
+  // "Top set" = heaviest weight (non-BW) or highest reps (BW).
+  function getSessionTopSets(ex, logs) {
+    const byDate = {};
+    logs.forEach(l => {
+      const dk = l.date.slice(0, 10);
+      if (!byDate[dk]) byDate[dk] = [];
+      byDate[dk].push(l);
+    });
+    return Object.keys(byDate).sort().map(dk => {
+      const sl = byDate[dk];
+      if (ex.bw) return sl.reduce((b, l) => l.reps > b.reps ? l : b, sl[0]);
+      return sl.reduce((b, l) => l.weight > b.weight ? l : b, sl[0]);
+    });
+  }
+  function getLastSessionTopSet(ex, logs) {
+    const s = getSessionTopSets(ex, logs);
+    return s.length ? s[s.length - 1] : null;
+  }
+
   // Prescription engine — "what should I do next session?"
+  // Uses the top set from each past session so multiple sets per day
+  // don't inflate the "stuck" counter or trigger a false upgrade.
   // Upgrade trigger: hits CONFIG.upgradeAtReps (default 8) OR the
-  // exercise's repMax, whichever fires first. So a 5-8 lifter hits
-  // upgrade at 8; a 6-12 lifter ALSO hits it at 8 instead of grinding
-  // out 12 reps before adding weight.
+  // exercise's repMax, whichever fires first.
   function getRx(ex, logs) {
     if (!logs.length) return null;
-    const last = logs[logs.length - 1];
+    const sessions = getSessionTopSets(ex, logs);
+    if (!sessions.length) return null;
+    const last = sessions[sessions.length - 1];
     const { weight, reps } = last;
     const { repMin, repMax, step, bw } = ex;
     const upgradeAt = Math.min(CONFIG.upgradeAtReps || 8, repMax);
     let stuck = 0;
-    for (let i = logs.length - 1; i >= 0; i--) {
-      if (logs[i].weight === weight) stuck++; else break;
+    for (let i = sessions.length - 1; i >= 0; i--) {
+      if (sessions[i].weight === weight) stuck++; else break;
     }
     if (bw) {
       if (reps >= upgradeAt) return { type: 'up', weight: 0, reps: reps + 1, tag: 'Push for more', reason: reps + ' reps — strong. Push for ' + (reps + 1) + ' next time.', bw: true };
@@ -1841,7 +1859,7 @@ img, video, canvas, svg { max-width: 100%; }
     noMsg.style.display = 'none';
     if (!f.find(e => e.id === state.currentEx)) state.currentEx = f[0].id;
     sel.innerHTML = f.map(e => {
-      const wLbl = e.bw ? ' · BW' : (e.startWeight ? ' · ' + e.startWeight + unit() : '');
+      const wLbl = e.bw ? ' · BW' : '';
       const sh = e.gym === 'both' ? ' ★' : '';
       return '<option value="' + e.id + '"' + (e.id === state.currentEx ? ' selected' : '') + '>' + escape(e.name) + wLbl + sh + '</option>';
     }).join('');
@@ -1872,11 +1890,13 @@ img, video, canvas, svg { max-width: 100%; }
     const ex = getCurrentEx();
     const logs = ex ? getLogs() : [];
     if (!ex || !logs.length) { wrap.classList.remove('show'); return; }
-    const last = logs[logs.length - 1];
+    const last = getLastSessionTopSet(ex, logs);
+    if (!last) { wrap.classList.remove('show'); return; }
     const setStr = ex.bw ? (last.reps + ' reps') : (last.weight + unit() + ' × ' + last.reps);
     const d = new Date(last.date);
     const da = Math.floor((Date.now() - d.getTime()) / 86400000);
     const ago = da === 0 ? 'today' : da === 1 ? 'yesterday' : da + ' days ago';
+    wrap.querySelector('.po-last-label').textContent = 'Last session top';
     v.textContent = setStr;
     m.textContent = ago;
     wrap.classList.add('show');
@@ -1888,14 +1908,13 @@ img, video, canvas, svg { max-width: 100%; }
     const logs = getLogs();
     const rx = getRx(ex, logs);
     if (!rx) {
-      const sw = ex.startWeight, sr = ex.repMin;
       const head = ex.bw
-        ? '<span class="po-accent">' + sr + '</span> reps'
-        : '<span class="po-accent">' + (sw || 0) + unit() + '</span> × ' + sr + ' reps';
+        ? '<span class="po-accent">' + ex.repMin + '–' + ex.repMax + '</span> reps'
+        : '<span class="po-accent">' + ex.repMin + '–' + ex.repMax + '</span> rep range';
       const reason = ex.bw
-        ? 'Aim for ' + ex.repMin + '-' + ex.repMax + ' clean reps. Once you hit ' + ex.repMax + '+, push for more.'
-        : 'Hit ' + ex.repMin + '-' + ex.repMax + ' reps. Once logged, the coach will start prescribing.';
-      wrap.innerHTML = '<div class="po-rx-card"><div class="po-rx-label">' + escape(ex.name) + ' · starting point</div><div class="po-rx-headline">' + head + '</div><span class="po-rx-tag hold">Start here</span><p class="po-rx-reason">' + reason + '</p></div>';
+        ? 'Log your first set. Aim for ' + ex.repMin + '–' + ex.repMax + ' clean reps — the coach prescribes from there.'
+        : 'Log your first set at a comfortable weight. The coach will prescribe based on what you actually lift.';
+      wrap.innerHTML = '<div class="po-rx-card"><div class="po-rx-label">' + escape(ex.name) + ' · log your first set</div><div class="po-rx-headline">' + head + '</div><span class="po-rx-tag hold">Start here</span><p class="po-rx-reason">' + reason + '</p></div>';
       return;
     }
     const head = rx.bw
@@ -1926,13 +1945,13 @@ img, video, canvas, svg { max-width: 100%; }
       if (cur > bestVal) best = l;
     });
     $('bestSet').textContent = ex.bw ? (best.reps + 'r') : (best.weight + '×' + best.reps);
-    $('sessionCount').textContent = logs.length;
+    $('sessionCount').textContent = getSessionTopSets(ex, logs).length;
   }
   function renderSparkline() {
     const svg = $('sparkline');
     const empty = $('sparkEmpty');
     const ex = getCurrentEx();
-    const logs = ex ? getLogs().slice(-10) : [];
+    const logs = ex ? getSessionTopSets(ex, getLogs()).slice(-10) : [];
     if (logs.length < 2) {
       svg.style.display = 'none'; empty.style.display = 'block';
       return;
@@ -2064,12 +2083,11 @@ img, video, canvas, svg { max-width: 100%; }
     renderRx(); renderStats(); renderSparkline(); renderHistory();
     renderTodaysWorkout();
     renderPastWorkouts();
-    // Pre-fill weight input with last logged weight (or starting weight)
+    // Pre-fill weight input with the top weight from the last session
     const ex = getCurrentEx();
     if (ex && !ex.bw) {
-      const logs = getLogs();
-      const w = logs.length ? logs[logs.length - 1].weight : (ex.startWeight || 0);
-      $('weightInput').value = w;
+      const topSet = getLastSessionTopSet(ex, getLogs());
+      $('weightInput').value = topSet ? topSet.weight : '';
     }
   }
 
@@ -2327,7 +2345,6 @@ img, video, canvas, svg { max-width: 100%; }
       modalGym = ex.gym;
       modalDay = ex.day;
       $('exBw').checked = !!ex.bw;
-      $('exStartWeight').value = ex.startWeight || 0;
       $('exRepMin').value = ex.repMin;
       $('exRepMax').value = ex.repMax;
       $('exStep').value = ex.step;
@@ -2336,7 +2353,6 @@ img, video, canvas, svg { max-width: 100%; }
       modalGym = state.filterGym;
       modalDay = state.filterDay;
       $('exBw').checked = false;
-      $('exStartWeight').value = 20;
       $('exRepMin').value = 6;
       $('exRepMax').value = 8;
       $('exStep').value = 2.5;
@@ -2348,7 +2364,6 @@ img, video, canvas, svg { max-width: 100%; }
   }
   function toggleBwFields() {
     const isBw = $('exBw').checked;
-    $('exStartWeightField').style.display = isBw ? 'none' : '';
     $('exStepField').style.display = isBw ? 'none' : '';
   }
   $('exBw').addEventListener('change', toggleBwFields);
@@ -2369,7 +2384,6 @@ img, video, canvas, svg { max-width: 100%; }
     const data = {
       name, gym: modalGym, day: modalDay,
       bw: isBw,
-      startWeight: isBw ? 0 : (parseFloat($('exStartWeight').value) || 0),
       repMin, repMax,
       step: isBw ? 1 : (parseFloat($('exStep').value) || 2.5)
     };
