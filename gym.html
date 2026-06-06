@@ -1262,6 +1262,56 @@ img, video, canvas, svg { max-width: 100%; }
 }
 
 .hidden { display: none !important; }
+
+/* ──── INSIGHTS: Muscle Heatmap + Training Calendar ─────── */
+.po-insights { margin-top: 16px; display: flex; flex-direction: column; gap: 12px; }
+.po-insight-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+.po-insight-title {
+  font-size: 10px; letter-spacing: 0.16em; font-weight: 700;
+  text-transform: uppercase; color: var(--text-3); margin-bottom: 14px;
+}
+.po-muscle-heatmap-wrap {
+  display: flex; gap: 8px; justify-content: center; align-items: flex-start;
+}
+.po-muscle-view {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 5px; max-width: 140px;
+}
+.po-muscle-view-label {
+  font-size: 9px; letter-spacing: 0.12em; font-weight: 700;
+  text-transform: uppercase; color: var(--text-4);
+}
+.po-muscle-svg { width: 100%; height: auto; display: block; }
+.po-muscle-legend {
+  display: flex; flex-wrap: wrap; gap: 5px 10px;
+  margin-top: 10px; justify-content: center;
+}
+.po-muscle-legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-3); }
+.po-muscle-legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+/* Calendar */
+.po-cal-months { display: flex; flex-direction: column; gap: 14px; }
+.po-cal-month-label {
+  font-size: 10px; letter-spacing: 0.1em; font-weight: 700;
+  text-transform: uppercase; color: var(--text-2); margin-bottom: 5px;
+}
+.po-cal-dow-row { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; margin-bottom: 3px; }
+.po-cal-dow-row span {
+  text-align: center; font-size: 9px; font-weight: 700;
+  letter-spacing: 0.04em; color: var(--text-4);
+}
+.po-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.po-cal-cell { aspect-ratio: 1; border-radius: 3px; }
+.po-cal-empty   { background: transparent; }
+.po-cal-future  { background: rgba(255,255,255,0.02); }
+.po-cal-rest    { background: rgba(255,255,255,0.06); }
+.po-cal-partial { background: rgba(110,231,183,0.30); }
+.po-cal-done    { background: rgba(110,231,183,0.65); }
+.po-cal-today   { box-shadow: inset 0 0 0 1.5px rgba(255,255,255,0.55); }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -1581,6 +1631,110 @@ img, video, canvas, svg { max-width: 100%; }
       </button>
       <div class="po-tw-past-body" id="poTwPastBody" style="display:none"></div>
     </div>
+  </div>
+
+  <!-- ── INSIGHTS ──────────────────────────────────────────── -->
+  <div class="po-insights">
+
+    <!-- Muscle Heatmap -->
+    <div class="po-insight-card">
+      <div class="po-insight-title">Muscle Heatmap</div>
+      <div class="po-muscle-heatmap-wrap">
+
+        <!-- Front view -->
+        <div class="po-muscle-view">
+          <span class="po-muscle-view-label">Front</span>
+          <svg class="po-muscle-svg" viewBox="0 0 110 185" xmlns="http://www.w3.org/2000/svg">
+            <!-- body outline -->
+            <circle cx="55" cy="12" r="10" fill="rgba(255,255,255,0.06)"/>
+            <rect x="51" y="21" width="8" height="7" rx="2" fill="rgba(255,255,255,0.06)"/>
+            <rect x="40" y="28" width="30" height="60" rx="5" fill="rgba(255,255,255,0.04)"/>
+            <rect x="26" y="28" width="13" height="56" rx="6" fill="rgba(255,255,255,0.04)"/>
+            <rect x="71" y="28" width="13" height="56" rx="6" fill="rgba(255,255,255,0.04)"/>
+            <rect x="40" y="87" width="30" height="11" rx="5" fill="rgba(255,255,255,0.05)"/>
+            <rect x="41" y="98" width="12" height="70" rx="6" fill="rgba(255,255,255,0.04)"/>
+            <rect x="57" y="98" width="12" height="70" rx="6" fill="rgba(255,255,255,0.04)"/>
+            <!-- shoulders (front delts) -->
+            <ellipse cx="32" cy="38" rx="10" ry="8" data-muscle="shoulders" fill="rgba(255,255,255,0.08)"/>
+            <ellipse cx="78" cy="38" rx="10" ry="8" data-muscle="shoulders" fill="rgba(255,255,255,0.08)"/>
+            <!-- chest -->
+            <rect x="41" y="29" width="13" height="24" rx="4" data-muscle="chest" fill="rgba(255,255,255,0.08)"/>
+            <rect x="56" y="29" width="13" height="24" rx="4" data-muscle="chest" fill="rgba(255,255,255,0.08)"/>
+            <!-- biceps -->
+            <rect x="27" y="37" width="11" height="24" rx="5" data-muscle="biceps" fill="rgba(255,255,255,0.08)"/>
+            <rect x="72" y="37" width="11" height="24" rx="5" data-muscle="biceps" fill="rgba(255,255,255,0.08)"/>
+            <!-- abs (3 bands) -->
+            <rect x="43" y="53" width="24" height="9" rx="3" data-muscle="abs" fill="rgba(255,255,255,0.08)"/>
+            <rect x="43" y="64" width="24" height="9" rx="3" data-muscle="abs" fill="rgba(255,255,255,0.08)"/>
+            <rect x="43" y="75" width="24" height="9" rx="3" data-muscle="abs" fill="rgba(255,255,255,0.08)"/>
+            <!-- quads -->
+            <rect x="42" y="99" width="11" height="37" rx="5" data-muscle="quads" fill="rgba(255,255,255,0.08)"/>
+            <rect x="57" y="99" width="11" height="37" rx="5" data-muscle="quads" fill="rgba(255,255,255,0.08)"/>
+            <!-- calves -->
+            <rect x="43" y="138" width="9" height="28" rx="4" data-muscle="calves" fill="rgba(255,255,255,0.08)"/>
+            <rect x="59" y="138" width="9" height="28" rx="4" data-muscle="calves" fill="rgba(255,255,255,0.08)"/>
+          </svg>
+        </div>
+
+        <!-- Back view -->
+        <div class="po-muscle-view">
+          <span class="po-muscle-view-label">Back</span>
+          <svg class="po-muscle-svg" viewBox="0 0 110 185" xmlns="http://www.w3.org/2000/svg">
+            <!-- body outline -->
+            <circle cx="55" cy="12" r="10" fill="rgba(255,255,255,0.06)"/>
+            <rect x="51" y="21" width="8" height="7" rx="2" fill="rgba(255,255,255,0.06)"/>
+            <rect x="40" y="28" width="30" height="60" rx="5" fill="rgba(255,255,255,0.04)"/>
+            <rect x="26" y="28" width="13" height="56" rx="6" fill="rgba(255,255,255,0.04)"/>
+            <rect x="71" y="28" width="13" height="56" rx="6" fill="rgba(255,255,255,0.04)"/>
+            <rect x="40" y="87" width="30" height="11" rx="5" fill="rgba(255,255,255,0.05)"/>
+            <rect x="41" y="98" width="12" height="70" rx="6" fill="rgba(255,255,255,0.04)"/>
+            <rect x="57" y="98" width="12" height="70" rx="6" fill="rgba(255,255,255,0.04)"/>
+            <!-- shoulders (rear delts, visible from back) -->
+            <ellipse cx="32" cy="38" rx="10" ry="8" data-muscle="shoulders" fill="rgba(255,255,255,0.08)"/>
+            <ellipse cx="78" cy="38" rx="10" ry="8" data-muscle="shoulders" fill="rgba(255,255,255,0.08)"/>
+            <!-- upper back / traps -->
+            <rect x="41" y="29" width="28" height="22" rx="4" data-muscle="upper-back" fill="rgba(255,255,255,0.08)"/>
+            <!-- lats -->
+            <rect x="37" y="51" width="11" height="33" rx="5" data-muscle="lats" fill="rgba(255,255,255,0.08)"/>
+            <rect x="62" y="51" width="11" height="33" rx="5" data-muscle="lats" fill="rgba(255,255,255,0.08)"/>
+            <!-- triceps -->
+            <rect x="27" y="37" width="11" height="24" rx="5" data-muscle="triceps" fill="rgba(255,255,255,0.08)"/>
+            <rect x="72" y="37" width="11" height="24" rx="5" data-muscle="triceps" fill="rgba(255,255,255,0.08)"/>
+            <!-- lower back -->
+            <rect x="43" y="84" width="24" height="13" rx="4" data-muscle="lower-back" fill="rgba(255,255,255,0.08)"/>
+            <!-- glutes -->
+            <rect x="42" y="98" width="12" height="21" rx="5" data-muscle="glutes" fill="rgba(255,255,255,0.08)"/>
+            <rect x="56" y="98" width="12" height="21" rx="5" data-muscle="glutes" fill="rgba(255,255,255,0.08)"/>
+            <!-- hamstrings -->
+            <rect x="42" y="121" width="11" height="36" rx="5" data-muscle="hamstrings" fill="rgba(255,255,255,0.08)"/>
+            <rect x="57" y="121" width="11" height="36" rx="5" data-muscle="hamstrings" fill="rgba(255,255,255,0.08)"/>
+            <!-- calves (back) -->
+            <rect x="43" y="159" width="9" height="26" rx="4" data-muscle="calves" fill="rgba(255,255,255,0.08)"/>
+            <rect x="59" y="159" width="9" height="26" rx="4" data-muscle="calves" fill="rgba(255,255,255,0.08)"/>
+          </svg>
+        </div>
+
+      </div>
+      <div class="po-muscle-legend">
+        <div class="po-muscle-legend-item"><span class="po-muscle-legend-dot" style="background:rgba(110,231,183,0.80)"></span>1–2d</div>
+        <div class="po-muscle-legend-item"><span class="po-muscle-legend-dot" style="background:rgba(251,191,36,0.65)"></span>3d</div>
+        <div class="po-muscle-legend-item"><span class="po-muscle-legend-dot" style="background:rgba(251,146,60,0.55)"></span>4–5d</div>
+        <div class="po-muscle-legend-item"><span class="po-muscle-legend-dot" style="background:rgba(255,138,138,0.50)"></span>6–7d</div>
+        <div class="po-muscle-legend-item"><span class="po-muscle-legend-dot" style="background:rgba(255,255,255,0.08)"></span>Untrained</div>
+      </div>
+    </div>
+
+    <!-- Training Calendar -->
+    <div class="po-insight-card">
+      <div class="po-insight-title">Training Consistency</div>
+      <div id="trainingCalendar" class="po-cal-months"></div>
+      <div class="po-muscle-legend" style="margin-top:10px">
+        <div class="po-muscle-legend-item"><span class="po-muscle-legend-dot" style="background:rgba(110,231,183,0.65)"></span>Done</div>
+        <div class="po-muscle-legend-item"><span class="po-muscle-legend-dot" style="background:rgba(110,231,183,0.30)"></span>Logged</div>
+        <div class="po-muscle-legend-item"><span class="po-muscle-legend-dot" style="background:rgba(255,255,255,0.06)"></span>Rest</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -2083,12 +2237,113 @@ img, video, canvas, svg { max-width: 100%; }
     renderRx(); renderStats(); renderSparkline(); renderHistory();
     renderTodaysWorkout();
     renderPastWorkouts();
+    renderMuscleHeatmap();
+    renderTrainingCalendar();
     // Pre-fill weight input with the top weight from the last session
     const ex = getCurrentEx();
     if (ex && !ex.bw) {
       const topSet = getLastSessionTopSet(ex, getLogs());
       $('weightInput').value = topSet ? topSet.weight : '';
     }
+  }
+
+  // ============================================================
+  // MUSCLE HEATMAP
+  // ============================================================
+  function getExerciseMuscles(name) {
+    const n = (name || '').toLowerCase();
+    const m = [];
+    if (/bench|push.?up|dip|chest|incline|decline/.test(n))             { m.push('chest', 'triceps'); }
+    if (/overhead.*press|press.*overhead|^ohp$|military press/.test(n)) { m.push('shoulders', 'triceps'); }
+    if (/shoulder press|arnold press/.test(n))                           { m.push('shoulders', 'triceps'); }
+    if (/lateral raise|side raise/.test(n))                              { m.push('shoulders'); }
+    if (/tricep|pushdown|skull crusher|triceps extension/.test(n))       { m.push('triceps'); }
+    if (/pull.?up|chin.?up|lat pull|pulldown/.test(n))                   { m.push('lats', 'biceps'); }
+    if (/\brow\b/.test(n))                                               { m.push('lats', 'biceps', 'upper-back'); }
+    if (/face pull|rear delt|reverse fly/.test(n))                       { m.push('upper-back', 'shoulders'); }
+    if (/shrug|trap/.test(n))                                            { m.push('upper-back'); }
+    if (/\bcurl\b|bicep/.test(n) && !/tricep/.test(n))                   { m.push('biceps'); }
+    if (/squat/.test(n))                                                  { m.push('quads', 'glutes', 'hamstrings'); }
+    if (/deadlift|rdl/.test(n))                                          { m.push('hamstrings', 'glutes', 'lower-back'); }
+    if (/leg press|hack squat/.test(n))                                   { m.push('quads', 'glutes'); }
+    if (/leg extension/.test(n))                                          { m.push('quads'); }
+    if (/leg curl|hamstring/.test(n))                                     { m.push('hamstrings'); }
+    if (/lunge|split squat|step.?up/.test(n))                            { m.push('quads', 'glutes'); }
+    if (/calf raise|standing calf|seated calf/.test(n))                  { m.push('calves'); }
+    if (/\bab\b|crunch|plank|sit.?up|core/.test(n))                      { m.push('abs'); }
+    return [...new Set(m)];
+  }
+
+  function computeMuscleHeat() {
+    const lastTrained = {};
+    const todayStr = wtDateKey(new Date());
+    state.exercises.forEach(ex => {
+      const muscles = getExerciseMuscles(ex.name);
+      (state.logs[ex.id] || []).forEach(log => {
+        const dk = log.date.slice(0, 10);
+        muscles.forEach(m => { if (!lastTrained[m] || dk > lastTrained[m]) lastTrained[m] = dk; });
+      });
+    });
+    function daysAgo(dk) {
+      return Math.round((new Date(todayStr + 'T00:00:00') - new Date(dk + 'T00:00:00')) / 86400000);
+    }
+    const colors = {};
+    Object.entries(lastTrained).forEach(([m, dk]) => {
+      const d = daysAgo(dk);
+      if      (d <= 1) colors[m] = 'rgba(110,231,183,0.80)';
+      else if (d <= 2) colors[m] = 'rgba(110,231,183,0.60)';
+      else if (d <= 3) colors[m] = 'rgba(251,191,36,0.65)';
+      else if (d <= 5) colors[m] = 'rgba(251,146,60,0.55)';
+      else if (d <= 7) colors[m] = 'rgba(255,138,138,0.50)';
+      else             colors[m] = 'rgba(255,255,255,0.10)';
+    });
+    return colors;
+  }
+
+  function renderMuscleHeatmap() {
+    const colors = computeMuscleHeat();
+    const dim = 'rgba(255,255,255,0.08)';
+    document.querySelectorAll('[data-muscle]').forEach(el => {
+      el.setAttribute('fill', colors[el.getAttribute('data-muscle')] || dim);
+    });
+  }
+
+  // ============================================================
+  // TRAINING CALENDAR
+  // ============================================================
+  function renderTrainingCalendar() {
+    const container = document.getElementById('trainingCalendar');
+    if (!container) return;
+    const byDay = logsByDay();
+    const today = new Date();
+    const todayStr = wtDateKey(today);
+    const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const DOWS   = ['M','T','W','T','F','S','S'];
+    const months = [];
+    for (let i = 2; i >= 0; i--) months.push(new Date(today.getFullYear(), today.getMonth() - i, 1));
+    container.innerHTML = months.map(m => {
+      const y = m.getFullYear(), mo = m.getMonth();
+      const dim = new Date(y, mo + 1, 0).getDate();
+      const firstDow = (new Date(y, mo, 1).getDay() + 6) % 7; // Mon=0, Sun=6
+      let cells = '';
+      for (let i = 0; i < firstDow; i++) cells += '<div class="po-cal-cell po-cal-empty"></div>';
+      for (let d = 1; d <= dim; d++) {
+        const dk = y + '-' + String(mo + 1).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+        const isToday = dk === todayStr, isFuture = dk > todayStr;
+        let cls = 'po-cal-cell';
+        if      (isFuture)                           cls += ' po-cal-future';
+        else if (doneDays[dk])                       cls += ' po-cal-done';
+        else if (byDay[dk] && byDay[dk].length > 0) cls += ' po-cal-partial';
+        else                                         cls += ' po-cal-rest';
+        if (isToday) cls += ' po-cal-today';
+        cells += '<div class="' + cls + '" title="' + dk + '"></div>';
+      }
+      return '<div class="po-cal-month-block">'
+        + '<div class="po-cal-month-label">' + MONTHS[mo] + ' ' + y + '</div>'
+        + '<div class="po-cal-dow-row">' + DOWS.map(v => '<span>' + v + '</span>').join('') + '</div>'
+        + '<div class="po-cal-grid">' + cells + '</div>'
+        + '</div>';
+    }).join('');
   }
 
   // ============================================================
@@ -2237,6 +2492,7 @@ img, video, canvas, svg { max-width: 100%; }
     saveDoneDays(doneDays);
     renderTodaysWorkout();
     renderPastWorkouts();
+    renderTrainingCalendar();
   });
   $('poTwPastToggle').addEventListener('click', () => {
     const body = $('poTwPastBody');
@@ -3347,6 +3603,7 @@ img, video, canvas, svg { max-width: 100%; }
     // key — otherwise renderAll/wtRender/photosRender would read stale
     // in-memory copies from before the remote pull.
     try { state = loadState(); } catch {}
+    try { doneDays = loadDoneDays(); } catch {}
     try { wtEntries = wtLoad(); } catch {}
     try {
       const raw = localStorage.getItem(PHOTO_KEY);
